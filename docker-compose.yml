@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_secure_password_here
+      POSTGRES_DB: aegis_db
+    ports:
+      - "5432:5432"
+    volumes:
+      # Automatically run the setup script when the database initializes
+      - ./aegis_setup.sql:/docker-entrypoint-initdb.d/1_aegis_setup.sql

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Aegis | Threat Intelligence</title>
+    <script>
+        // Enforce active session
+        const aegis_token = localStorage.getItem('aegis_token');
+        if (aegis_token !== 'verified-admin-session') {
+            window.location.href = '/static/login.html';
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- FontAwesome for professional icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            /* Premium Dark Theme Core */
+            --bg-base: #09090b;
+            --bg-surface: rgba(24, 24, 27, 0.6);
+            --bg-card: rgba(39, 39, 42, 0.4);
+            
+            /* Accents */
+            --accent-primary: #3b82f6;      /* Professional Blue */
+            --accent-danger: #ef4444;       /* Alert Red */
+            --accent-success: #10b981;      /* Secure Green */
+            --accent-warning: #f59e0b;      /* Investigation Amber */
+            
+            /* Typography */
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            --text-dark: #71717a;
+            
+            /* Structural Effects */
+            --border-light: rgba(255, 255, 255, 0.08);
+            --border-glow: rgba(59, 130, 246, 0.3);
+            --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-base);
+            /* Subtle radiant gradient background */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.05), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(239, 68, 68, 0.05), transparent 25%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            letter-spacing: 0.2px;
+        }
+
+        /* ----- SIDEBAR NAVIGATION ----- */
+        .sidebar {
+            width: 260px;
+            background: var(--bg-surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .brand {
+            padding: 1.5rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .brand-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--accent-primary), #1d4ed8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.1rem;
+            box-shadow: 0 0 15px var(--border-glow);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            margin: 0;
+            font-weight: 700;
+            background: linear-gradient(to right, #fff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            margin: 0;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-menu {
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex-grow: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.875rem 1rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .nav-item i {
+            width: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .nav-item:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.03);
+            transform: translateX(4px);
+        }
+
+        .nav-item.active {
+            color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 0 8px 8px 0;
+            transform: none;
+        }
+
+        /* System Status Indicator */
+        .system-status {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success);
+            animation: pulse-green 2s infinite;
+        }
+
+        /* ----- MAIN CONTENT AREA ----- */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-header {
+            height: 70px;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(9, 9, 11, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-light);
+            z-index: 5;
+        }
+
+        .header-title h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .auth-badge {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Dashboard Views */
+        .view-section {
+            display: none;
+            padding: 2rem;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .view-section.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+
+        /* ----- LIVE ALERTS TAB ----- */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-surface);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-glass);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .stat-info h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-info .value {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .stat-icon.danger { background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); }
+        .stat-icon.warning { background: rgba(245, 158, 11, 0.1); color: var(--accent-warning); }
+        .stat-icon.success { background: rgba(16, 185, 129, 0.1); color: var(--accent-success); }
+
+        .feed-container {
+            background: var(--bg-surface);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-glass);
+        }
+
+        .feed-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .feed-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .live-pulse {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--accent-danger);
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-danger);
+            border-radius: 50%;
+            animation: pulse-red 1.5s infinite;
+        }
+
+        /* Glassmorphism Alert Cards */
+        #alerts-list {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .security-alert {
+            background: var(--bg-card);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-left: 4px solid var(--accent-danger);
+            border-radius: 8px;
+            padding: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            animation: slideInRight 0.4s ease-out forwards;
+        }
+
+        .security-alert::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .security-alert:hover {
+            transform: translateX(4px);
+            border-color: var(--accent-danger);
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+        }
+
+        .alert-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .alert-type {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--accent-danger);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-timestamp {
+            color: var(--text-dark);
+            font-size: 0.8rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .alert-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 6px;
+            border: 1px solid var(--border-light);
+        }
+
+        .data-point {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .data-point.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .dp-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .dp-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .dp-value.highlight {
+            color: var(--accent-warning);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-dark);
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* ----- PLACEHOLDER VIEWS ----- */
+        .coming-soon-card {
+            background: var(--bg-surface);
+            border: 1px dashed var(--border-light);
+            border-radius: 12px;
+            padding: 4rem 2rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .coming-soon-card i {
+            font-size: 3rem;
+            color: var(--accent-primary);
+            margin-bottom: 1rem;
+            opacity: 0.8;
+        }
+
+        /* Animations */
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        @keyframes pulse-red {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div class="brand-text">
+                <h1>Aegis</h1>
+                <p>Intelligence Engine</p>
+            </div>
+        </div>
+
+        <div class="nav-menu">
+            <a href="#" class="nav-item active" onclick="switchTab('alerts', this)">
+                <i class="fa-solid fa-radar"></i>
+                <span>Live Feed</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('history', this)">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+                <span>Attack History</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('lockdown', this)">
+                <i class="fa-solid fa-user-lock"></i>
+                <span>Isolated Users</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('ai', this)">
+                <i class="fa-solid fa-brain"></i>
+                <span>AI Analysis</span>
+            </a>
+            <a href="#" class="nav-item" onclick="switchTab('rules', this)">
+                <i class="fa-solid fa-sliders"></i>
+                <span>System Rules</span>
+            </a>
+        </div>
+
+        <div class="system-status">
+            <div class="status-dot"></div>
+            <span>Database Connected</span>
+        </div>
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <header class="top-header">
+            <div class="header-title">
+                <h2 id="page-title">Real-Time Threat Feed</h2>
+            </div>
+            <div class="header-actions">
+                <div class="auth-badge" style="cursor: pointer; transition: 0.2s;" onclick="logout()" onmouseover="this.style.borderColor='var(--accent-danger)'; this.style.color='var(--accent-danger)'" onmouseout="this.style.borderColor='var(--border-light)'; this.style.color='var(--text-muted)'">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Disconnect</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- VIEW 1: LIVE ALERTS -->
+        <section id="view-alerts" class="view-section active">
+            
+            <!-- Key Metrics -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Critical Threats Total</h3>
+                        <p class="value" id="stat-total">0</p>
+                    </div>
+                    <div class="stat-icon danger">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Monitored Tables</h3>
+                        <p class="value">2</p> <!-- Currently audit_log and honeytoken -->
+                    </div>
+                    <div class="stat-icon success">
+                        <i class="fa-solid fa-database"></i>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-info">
+                        <h3>Engine Status</h3>
+                        <p class="value" style="font-size: 1.5rem; color: var(--accent-success);">Active</p>
+                    </div>
+                    <div class="stat-icon warning">
+                        <i class="fa-solid fa-server"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live Feed Stream -->
+            <div class="feed-container">
+                <div class="feed-header">
+                    <h3>Intrusion Detection Logs</h3>
+                    <div class="live-pulse">
+                        <div class="pulse-dot"></div>
+                        LISTENING
+                    </div>
+                </div>
+                <div id="alerts-list">
+                    <div class="empty-state">
+                        <i class="fa-solid fa-shield-check"></i>
+                        <h3>System Secure</h3>
+                        <p>No unauthorized database access detected yet.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: ATTACK HISTORY -->
+        <section id="view-history" class="view-section">
+            <div class="feed-container">
+                <div class="feed-header" style="justify-content: flex-start; gap: 1rem;">
+                    <h3><i class="fa-solid fa-list-ul" style="color: var(--accent-primary);"></i> Complete Event Log</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); padding: 0.2rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 4px;">Persisted Alerts</span>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); background: rgba(0,0,0,0.2);">
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Timestamp</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Threat Score</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Target Table</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">User / Origin</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Operation</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- Rows injected via JS -->
+                            <tr id="history-empty-row">
+                                <td colspan="5" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                    <i class="fa-solid fa-shield-check" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i><br>
+                                    No historical attack data recorded.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW: LOCKED USERS -->
+        <section id="view-lockdown" class="view-section">
+            <div class="feed-container">
+                <div class="feed-header" style="justify-content: flex-start; gap: 1rem;">
+                    <h3><i class="fa-solid fa-user-lock" style="color: var(--accent-danger);"></i> Isolated Accounts</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted); padding: 0.2rem 0.6rem; background: rgba(255,255,255,0.05); border-radius: 4px;">Active Mitigations</span>
+                </div>
+                
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid var(--border-light); background: rgba(0,0,0,0.2);">
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Time Isolated</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Username</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Reason</th>
+                                <th style="padding: 1rem 1.5rem; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="lockdown-table-body">
+                            <tr id="lockdown-empty-row">
+                                <td colspan="4" style="text-align: center; padding: 3rem; color: var(--text-muted);">
+                                    <i class="fa-solid fa-users" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5;"></i><br>
+                                    No accounts currently isolated.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: AI ANALYSIS -->
+        <section id="view-ai" class="view-section">
+            <div id="ai-content-container" style="display: none;">
+                <div class="stats-row" style="grid-template-columns: 1fr 2fr;">
+                    
+                    <!-- Threat Score Gauge -->
+                    <div class="stat-card" style="flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+                        <h3 style="color: var(--text-muted); text-transform: uppercase; font-size: 0.85rem; margin: 0;">GNN Threat Score</h3>
+                        
+                        <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
+                            <!-- SVG Circle for Gauge -->
+                            <svg width="140" height="140" viewBox="0 0 100 100" style="transform: rotate(-90deg);">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="8"></circle>
+                                <circle id="ai-gauge-fill" cx="50" cy="50" r="40" fill="none" stroke="var(--accent-danger)" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition: stroke-dashoffset 1s ease-out;"></circle>
+                            </svg>
+                            <div style="position: absolute; text-align: center;">
+                                <span id="ai-threat-score" style="font-size: 2.5rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-main);">0</span><span style="font-size: 1rem; color: var(--text-muted);">%</span>
+                            </div>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Model Confidence:</span>
+                            <span id="ai-confidence" style="font-size: 0.85rem; font-weight: 600; color: var(--accent-primary);">--%</span>
+                        </div>
+                    </div>
+
+                    <!-- Explainer Indicators -->
+                    <div class="feed-container" style="display: flex; flex-direction: column;">
+                        <div class="feed-header">
+                            <h3><i class="fa-solid fa-microchip"></i> Key Threat Indicators</h3>
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">Extracted via PyTorch GNNExplainer</span>
+                        </div>
+                        <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; flex-grow: 1;" id="ai-indicators-list">
+                            <!-- Indicators injected via JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latest Anomaly Context -->
+                <div class="security-alert" style="margin-top: 2rem;">
+                    <div class="alert-top">
+                        <div class="alert-type">Context: Latest Analyzed Event</div>
+                        <div class="alert-timestamp" id="ai-context-time">--</div>
+                    </div>
+                    <div class="alert-body">
+                        <div class="data-point">
+                            <span class="dp-label">Target</span>
+                            <span class="dp-value" id="ai-context-target">--</span>
+                        </div>
+                        <div class="data-point">
+                            <span class="dp-label">Source</span>
+                            <span class="dp-value" id="ai-context-user">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ai-empty-state" class="coming-soon-card">
+                <i class="fa-solid fa-network-wired"></i>
+                <h2>Awaiting Data for Analysis</h2>
+                <p>The Graph Neural Network requires at least one database event to process.</p>
+            </div>
+        </section>
+
+        <!-- VIEW 3: SYSTEM RULES -->
+        <section id="view-rules" class="view-section">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                
+                <!-- Rule Config: PostgreSQL -->
+                <div class="feed-container">
+                    <div class="feed-header">
+                        <h3><i class="fa-solid fa-server" style="color: var(--accent-primary);"></i> Active Database Triggers</h3>
+                        <div class="auth-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success); border-color: rgba(16, 185, 129, 0.3);">
+                            <i class="fa-solid fa-check"></i> 1 Active
+                        </div>
+                    </div>
+                    <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-left: 3px solid var(--accent-primary); border-radius: 8px; padding: 1.25rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="font-weight: 600; font-size: 1rem;">trg_honeytoken_access_row</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">ROW LEVEL</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                                <div><i class="fa-solid fa-table" style="width: 20px;"></i> Target: <span style="color: var(--text-main); font-family: monospace;">audit.honeytoken_registry</span></div>
+                                <div><i class="fa-solid fa-bolt" style="width: 20px;"></i> Action: <span style="color: var(--text-main);">AFTER INSERT OR UPDATE OR DELETE</span></div>
+                                <div><i class="fa-solid fa-code-commit" style="width: 20px;"></i> Executes: <span style="color: var(--accent-primary); font-family: monospace;">audit.notify_honeytoken_access()</span></div>
+                            </div>
+                            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.8rem; color: var(--text-dark);">
+                                Payload includes `old_record`, `new_record`, and networking context via <span style="font-family: monospace;">pg_notify('db_event')</span>.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rule Config: AI Evaluation -->
+                <div class="feed-container">
+                    <div class="feed-header">
+                        <h3><i class="fa-solid fa-scale-balanced" style="color: var(--accent-warning);"></i> AI Threat Thresholds</h3>
+                        <div class="auth-badge" style="background: rgba(59, 130, 246, 0.1); color: var(--accent-primary); border-color: rgba(59, 130, 246, 0.3);">
+                            <i class="fa-solid fa-gear"></i> GNN Engine
+                        </div>
+                    </div>
+                    <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                        
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 1rem; align-items: center; background: rgba(239, 68, 68, 0.05); border: 1px dashed rgba(239, 68, 68, 0.3); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-danger); text-align: center; border-right: 1px solid rgba(255,255,255,0.1);">80%+</div>
+                            <div>
+                                <h4 style="margin: 0 0 0.25rem 0; color: var(--text-main);">CRITICAL ISOLATION</h4>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Drop database connection and lock account instantly.</p>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 1rem; align-items: center; background: rgba(245, 158, 11, 0.05); border: 1px dashed rgba(245, 158, 11, 0.3); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-warning); text-align: center; border-right: 1px solid rgba(255,255,255,0.1);">40%+</div>
+                            <div>
+                                <h4 style="margin: 0 0 0.25rem 0; color: var(--text-main);">ELEVATED MONITORING</h4>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Flag to dashboard and increase logging verbosity.</p>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 80px 1fr; gap: 1rem; align-items: center; background: rgba(16, 185, 129, 0.05); border: 1px dashed rgba(16, 185, 129, 0.3); padding: 1rem; border-radius: 8px;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-success); text-align: center; border-right: 1px solid rgba(255,255,255,0.1);"><40%</div>
+                            <div>
+                                <h4 style="margin: 0 0 0.25rem 0; color: var(--text-main);">STANDARD AUDIT</h4>
+                                <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Record event in `change_log`. No active alarm.</p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- NAVIGATION LOGIC ---
+        const titles = {
+            'alerts': 'Real-Time Threat Feed',
+            'history': 'Attack History Log',
+            'lockdown': 'Isolated Accounts Management',
+            'ai': 'AI Context & Analysis',
+            'rules': 'Database Security Rules'
+        };
+
+        function switchTab(tabId, element) {
+            // Update Active Nav Link
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            // Hide all views, show targeted view
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+
+            // Update Header Title
+            document.getElementById('page-title').innerText = titles[tabId];
+        }
+
+        // --- DASHBOARD DATA LOGIC ---
+        let processedAlerts = new Set();
+        let totalAlertsCount = 0;
+        
+        function logout() {
+            localStorage.removeItem('aegis_token');
+            window.location.href = '/static/login.html';
+        }
+
+        async function fetchSystemAlerts() {
+            try {
+                // Fetch alerts with Authorization header
+                const response = await fetch('/api/alerts', {
+                    headers: { 'Authorization': `Bearer ${aegis_token}` }
+                });
+                if (response.status === 401) {
+                    logout();
+                    return;
+                }
+                const data = await response.json();
+                
+                if (data.alerts && data.alerts.length > 0) {
+                    const listContainer = document.getElementById('alerts-list');
+                    
+                    // Remove Empty States on first alert
+                    if (document.querySelector('.empty-state')) {
+                        listContainer.innerHTML = '';
+                    }
+                    const emptyRow = document.getElementById('history-empty-row');
+                    if (emptyRow) {
+                        emptyRow.remove();
+                    }
+
+                    // Process from newest to oldest
+                    for (let i = data.alerts.length - 1; i >= 0; i--) {
+                        const alert = data.alerts[i];
+                        const alertId = alert.event_time + alert.table_name + alert.operation;
+                        
+                        // If new alert, render it
+                        if (!processedAlerts.has(alertId)) {
+                            processedAlerts.add(alertId);
+                            
+                            // Update total count tracker
+                            totalAlertsCount++;
+                            document.getElementById('stat-total').innerText = totalAlertsCount;
+                            
+                            // Parse Timestamp securely
+                            const date = new Date(alert.event_time);
+                            const timeString = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit', fractionalSecondDigits: 3});
+                            const dateString = date.toLocaleDateString();
+
+                            // ---- 1. BUILD LIVE FEED CARD ----
+                            const card = document.createElement('div');
+                            card.className = 'security-alert';
+                            card.innerHTML = `
+                                <div class="alert-top">
+                                    <div class="alert-type">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> UNAUTHORIZED DATABASE ${alert.operation}
+                                    </div>
+                                    <div class="alert-timestamp">${dateString} ${timeString}</div>
+                                </div>
+                                <div class="alert-body">
+                                    <div class="data-point">
+                                        <span class="dp-label">Compromised Table</span>
+                                        <span class="dp-value">${alert.table_name}</span>
+                                    </div>
+                                    <div class="data-point">
+                                        <span class="dp-label">Origin User / Client</span>
+                                        <span class="dp-value highlight">${alert.user_name} @ ${alert.client_addr || 'Local Container'}</span>
+                                    </div>
+                                    <div class="data-point full-width">
+                                        <span class="dp-label">Extracted Payload / Changes</span>
+                                        <span class="dp-value" style="opacity: 0.8; font-size: 0.8rem;">
+                                            ${alert.new_record ? JSON.stringify(alert.new_record) : (alert.old_record ? JSON.stringify(alert.old_record) : 'No payload')}
+                                        </span>
+                                    </div>
+                                </div>
+                            `;
+                            listContainer.insertBefore(card, listContainer.firstChild);
+
+                            // ---- 2. BUILD HISTORY TABLE ROW ----
+                            const tableBody = document.getElementById('history-table-body');
+                            const tr = document.createElement('tr');
+                            tr.style.borderBottom = '1px solid var(--border-light)';
+                            
+                            // Determine threat score styling
+                            let scoreHtml = '<span style="color: var(--text-muted)">N/A</span>';
+                            if (alert.ai_analysis) {
+                                const score = alert.ai_analysis.threat_score;
+                                let color = 'var(--accent-success)';
+                                if (score >= 80) color = 'var(--accent-danger)';
+                                else if (score >= 40) color = 'var(--accent-warning)';
+                                
+                                scoreHtml = `<span style="color: ${color}; font-weight: 700; font-family: monospace;">${score}%</span>`;
+                            }
+
+                            tr.innerHTML = `
+                                <td style="padding: 1rem 1.5rem; font-family: monospace; font-size: 0.85rem;">${dateString} ${timeString}</td>
+                                <td style="padding: 1rem 1.5rem;">${scoreHtml}</td>
+                                <td style="padding: 1rem 1.5rem; color: var(--text-main);">${alert.table_name}</td>
+                                <td style="padding: 1rem 1.5rem;">${alert.user_name} @ ${alert.client_addr || 'Local Container'}</td>
+                                <td style="padding: 1rem 1.5rem; color: var(--accent-danger); font-weight: 600;">${alert.operation}</td>
+                            `;
+                            
+                            // Insert at the top of the table
+                            tableBody.insertBefore(tr, tableBody.firstChild);
+
+                            // ---- 3. UPDATE AI ANALYSIS TAB WITH THE LATEST EVENT ----
+                            if (i === data.alerts.length - 1 && alert.ai_analysis) {
+                                document.getElementById('ai-empty-state').style.display = 'none';
+                                document.getElementById('ai-content-container').style.display = 'block';
+
+                                const ai = alert.ai_analysis;
+                                
+                                // Update Gauge
+                                document.getElementById('ai-threat-score').innerText = ai.threat_score;
+                                document.getElementById('ai-confidence').innerText = ai.ai_confidence + '%';
+                                
+                                // Calculate SVG Stroke Offset (251.2 is full circle circumference)
+                                const offset = 251.2 - (251.2 * (ai.threat_score / 100));
+                                const gaugeFill = document.getElementById('ai-gauge-fill');
+                                gaugeFill.style.strokeDashoffset = offset;
+                                
+                                // Change gauge color based on severity
+                                if (ai.threat_score > 80) gaugeFill.style.stroke = 'var(--accent-danger)';
+                                else if (ai.threat_score > 40) gaugeFill.style.stroke = 'var(--accent-warning)';
+                                else gaugeFill.style.stroke = 'var(--accent-success)';
+
+                                // Update Indicators List
+                                const list = document.getElementById('ai-indicators-list');
+                                list.innerHTML = '';
+                                ai.key_indicators.forEach(indicator => {
+                                    list.innerHTML += `
+                                        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); padding: 1rem; border-radius: 8px; display: flex; align-items: center; gap: 1rem;">
+                                            <i class="fa-solid fa-microscope" style="color: var(--accent-primary);"></i>
+                                            <span style="font-weight: 500;">${indicator}</span>
+                                        </div>
+                                    `;
+                                });
+
+                                // Update Context Context
+                                document.getElementById('ai-context-time').innerText = `${dateString} ${timeString}`;
+                                document.getElementById('ai-context-target').innerText = `${alert.operation} on ${alert.table_name}`;
+                                document.getElementById('ai-context-user').innerText = `${alert.user_name} @ ${alert.client_addr || 'Local Container'}`;
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Dashboard failed to fetch alerts:", error);
+            }
+        }
+
+        async function fetchLockedUsers() {
+            try {
+                const response = await fetch('/api/locked-users', {
+                    headers: { 'Authorization': `Bearer ${aegis_token}` }
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                const tableBody = document.getElementById('lockdown-table-body');
+                if (data.locked_users && data.locked_users.length > 0) {
+                    const emptyRow = document.getElementById('lockdown-empty-row');
+                    if (emptyRow) emptyRow.remove();
+                    
+                    tableBody.innerHTML = '';
+                    
+                    data.locked_users.slice().reverse().forEach(user => {
+                        const date = new Date(user.timestamp);
+                        const timeString = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                        const dateString = date.toLocaleDateString();
+                        
+                        const tr = document.createElement('tr');
+                        tr.style.borderBottom = '1px solid var(--border-light)';
+                        tr.innerHTML = `
+                            <td style="padding: 1rem 1.5rem; font-family: monospace; font-size: 0.85rem;">${dateString} ${timeString}</td>
+                            <td style="padding: 1rem 1.5rem; color: var(--text-main); font-weight: 500;">${user.username}</td>
+                            <td style="padding: 1rem 1.5rem; color: var(--accent-danger);">${user.reason}</td>
+                            <td style="padding: 1rem 1.5rem;">
+                                <span style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; border: 1px solid rgba(239, 68, 68, 0.3);">
+                                    <i class="fa-solid fa-lock"></i> LOCKED
+                                </span>
+                            </td>
+                        `;
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (e) {
+                console.error("Failed to fetch locked users", e);
+            }
+        }
+
+        // Poll endpoints automatically
+        setInterval(fetchSystemAlerts, 1500);
+        setInterval(fetchLockedUsers, 2000);
+        fetchSystemAlerts();
+        fetchLockedUsers();
+    </script>
+</body>
+</html>
